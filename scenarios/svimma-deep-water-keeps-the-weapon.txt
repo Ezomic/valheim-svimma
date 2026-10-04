@@ -1,0 +1,101 @@
+#! nostage
+#
+# Svimma: in deep water a weapon stays in hand, can be taken out, costs more to swing, and the
+# things the player did not allow are still put away.
+#
+# Written against the code, never run. Nothing in it is verified in game yet.
+#
+# Six claims, in this order:
+#
+#   0. You are swimming with no ground under you. The scenario cannot put you there, so it waits up
+#      to 90 seconds for you to swim out, and fails saying so if you never do. Every claim after
+#      this one is about deep water and means nothing on a beach.
+#   1. A sword equips while swimming. Vanilla's EquipItem refuses it, so "equip=ok" is the first
+#      thing only Svimma can say.
+#   2. Two seconds later the sword is still in the right hand. Vanilla's UpdateEquipment hides the
+#      hands every frame while you swim, so a sword that survived a wait is the second.
+#   3. A swing starts, and what it was charged is 1.50 times what vanilla charges. The ratio is the
+#      one number that does not depend on the sword, the skill or the food eaten, because both halves
+#      are read from the same call.
+#   4. A pickaxe equips too.
+#   5. A bow, a hammer and a torch are refused (AllowBows and AllowBuildingTools are off by default,
+#      and a torch is never allowed), and so is a chest piece: the refusal is vanilla's, kept for
+#      everything that is not a hand item.
+#
+# NEEDS: singleplayer, stamina full, Svimma's defaults in the cfg (DeepSwingStaminaMultiplier 1.5,
+# AllowBows and AllowBuildingTools off, AllowMelee and AllowPickaxes on) and Enabled true. A host with
+# other values changes the answers, which is the rule working. Start the scenario standing on the
+# shore, then swim out until the step after the first one passes. Devkit for `give`, `clear`, `mod`,
+# `until` and `printed`.
+#
+# LEAVES: nothing in the world. Devkit empties the pack and hands back the test kit.
+#
+# MANUAL STEPS, for what no step can see.
+#
+#   1. Swim out, take the sword out, and press the attack button. Expected: the swing plays and does
+#      not look broken (no sliding, no frozen pose), and you stay afloat. If the animation is wrong
+#      the code is right and the animator state for swimming is what has to be dealt with.
+#   2. Swing at a creature or a tree standing in or just beyond the water. Expected: it takes damage.
+#      Hits on things under the surface are the unknown the ticket named.
+#   3. In deep water, press the hide key twice. Expected: the sword goes away, then comes out again.
+#      Vanilla would leave it hidden until you stood on the ground.
+#   4. Hold the block button with a shield in the other hand. Expected: nothing, no block pose, and
+#      `svimma` reports blocking=no. Set AllowBlocking true: it blocks.
+#   5. With the fishing rod in hand, cast from deep water. Expected: the float lands and you can bite
+#      and reel.
+#   6. Wade out until the water is at your chest but your feet are on the bottom. Expected: swings cost
+#      the ordinary price (`svimma cost` reports none) and nothing in this mod is involved.
+#   7. Swim for a while, swinging, until the bar is nearly empty. Expected: a swing is refused when you
+#      cannot pay it, and an empty bar while swimming drowns you exactly as in vanilla.
+#   8. On a server with the host's DeepSwingStaminaMultiplier set to 2 and yours to 1.5: swings charge 2.
+#      Verbose in your own cfg still logs, because it is the one setting the host never sets.
+
+
+# ---- 0: deep water
+
+mod svimma
+until 90 deep=yes
+printed enabled=yes yes
+
+clear
+give SwordBronze:1,PickaxeBronze:1,Bow:1,Hammer:1,Torch:1,ArmorLeatherChest:1
+
+
+# ---- 1 and 2: the sword equips and stays
+
+mod svimma equip SwordBronze
+printed equip=ok yes
+wait 2
+mod svimma
+printed right=SwordBronze yes
+printed deep=yes yes
+
+
+# ---- 3: a swing, and its price
+
+mod svimma swing
+printed swing=started yes
+wait 3
+mod svimma cost
+printed ratio=1.50 yes
+
+
+# ---- 4: the pickaxe
+
+mod svimma equip PickaxeBronze
+printed equip=ok yes
+
+
+# ---- 5: what stays put away
+
+mod svimma equip Bow
+printed equip=refused yes
+
+mod svimma equip Hammer
+printed equip=refused yes
+
+mod svimma equip Torch
+printed equip=refused yes
+
+mod svimma equip ArmorLeatherChest
+printed equip=refused yes

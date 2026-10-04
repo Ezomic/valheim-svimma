@@ -8,15 +8,20 @@ using HarmonyLib;
 namespace Svimma
 {
     /// <summary>
-    /// Svimma. One sentence saying what the mod does, then a paragraph saying why it is
-    /// worth having - the design argument, not the feature list. That paragraph is the thing
-    /// future-you reads first.
+    /// Svimma. Swimming no longer puts the item in your hand away: a weapon, a pickaxe or a
+    /// fishing rod stays out, and can be taken out, while you are in deep water.
     ///
-    /// Say here whether the mod is client-side, and say it in terms of where the work
-    /// happens rather than by habit. "Client-side" means every effect is computed by the
-    /// owning client off state it already has. The moment a decision reads another player's
-    /// progress, writes a shared ZDO, or registers a prefab, it is not client-side any more
-    /// and Requirement.Everyone below is load-bearing.
+    /// Vanilla hides your hand items every frame while you swim with no ground under you, and
+    /// refuses to equip anything in that state, so the water is a place where you can only
+    /// punch. Svimma lifts exactly those two checks and, for the hand items the player has
+    /// allowed, nothing more. It is deliberately narrower than "use anything anywhere": the
+    /// ranged weapons, staffs and building tools stay put away unless switched on, a swing
+    /// costs more because stamina does not come back while you swim, and blocking is off.
+    ///
+    /// Where the work happens: all of it on the owning client, off state it already has. The
+    /// game's own checks run there, the equipment other players see travels through the
+    /// character's ZDO as it always did, and nothing is registered, spawned or saved. So it is
+    /// client-side in the full sense and Requirement.HostOnly below is correct, not lazy.
     ///
     /// There is deliberately no BepInProcess attribute. A dedicated server runs
     /// valheim_server.exe, and Core's gate only refuses on the server side of RPC_PeerInfo -
@@ -66,6 +71,12 @@ namespace Svimma
             // the moment it compiles.
             _harmony = new Harmony(PluginGuid);
             _harmony.PatchAll(typeof(SvimmaPatches));
+            _harmony.PatchAll(typeof(HoldPatch));
+            _harmony.PatchAll(typeof(EquipPatch));
+            _harmony.PatchAll(typeof(DrawPatch));
+            _harmony.PatchAll(typeof(BlockPatch));
+            _harmony.PatchAll(typeof(CostPatch));
+            _harmony.PatchAll(typeof(DevConsole.Hook));
 
             // The startup line every mod in the suite writes. It is how a log answers "which
             // build of what is actually loaded" without anyone guessing.
@@ -75,12 +86,10 @@ namespace Svimma
         /// <summary>
         /// Joins Core's version gate when Core is installed, and does nothing when it is not.
         ///
-        /// Name here exactly what standing alone costs, because it is usually not the mod.
-        /// For most of these it is the *enforcement*: without Core nothing refuses a client
-        /// that lacks the plugin, so the rule becomes an agreement between players rather
-        /// than a property of the server. That is a real loss and a legitimate choice, and
-        /// it is the server owner's to make - which is why this logs rather than refusing
-        /// to run.
+        /// What standing without Core costs here is the host's say. Nothing then imposes the
+        /// host's allowed list, price or blocking rule on a client, so those become an agreement
+        /// between players rather than a property of the server. That is the server owner's to
+        /// take, which is why this logs rather than refusing to run.
         /// </summary>
         private void TryRegisterWithCore()
         {
@@ -106,19 +115,35 @@ namespace Svimma
         [MethodImpl(MethodImplOptions.NoInlining)]
         private void RegisterWithCore()
         {
-            // Requirement.Everyone or Requirement.HostOnly, and the choice is not a matter of
-            // taste. Everyone for anything that registers a prefab or changes item data,
-            // whether it looks networked or not: a client that cannot resolve a prefab hash
-            // does not fail loudly, ZNetScene discards the ZDO as junk and the thing a player
-            // built is simply gone. HostOnly only when a client without the mod is genuinely
-            // unaffected.
-            Suite.Register(PluginGuid, PluginName, PluginVersion, Config, Requirement.Everyone);
+            // HostOnly, and it is load-bearing rather than lazy. Svimma registers no prefab,
+            // changes no item data and writes no value of its own, so a player without it cannot
+            // fail to resolve anything: they simply cannot swing in the water, and the swing a
+            // player with it takes is shown to them through the ordinary equipment and animation
+            // state every client already reads. Everyone would refuse those players the server for
+            // no gain. Core treats HostOnly symmetrically, so a Svimma client can also still join
+            // a server that does not run it and simply gets the rule it has locally.
+            Suite.Register(PluginGuid, PluginName, PluginVersion, Config, Requirement.HostOnly);
 
-            // Registering already absorbs the whole config file, so this is a formality now.
-            // It is still worth writing: naming an entry here is saying out loud that the
-            // host decides it. Keybinds are excluded by Core itself - a host taking away
-            // someone's keys for the evening is the kind of sync that gets a mod uninstalled.
+            // Registering already absorbs the whole config file, so these are a formality. They
+            // are still worth writing: naming an entry here is saying out loud that the host
+            // decides it. What may be used in deep water, what a swing costs and whether you can
+            // block are rules about a fight, and a table where everyone brought their own
+            // AllowBows is not a table anybody agreed to sit at.
             Suite.Sync(SvimmaConfig.Enabled);
+            Suite.Sync(SvimmaConfig.AllowMelee);
+            Suite.Sync(SvimmaConfig.AllowPickaxes);
+            Suite.Sync(SvimmaConfig.AllowFishing);
+            Suite.Sync(SvimmaConfig.AllowBows);
+            Suite.Sync(SvimmaConfig.AllowCrossbows);
+            Suite.Sync(SvimmaConfig.AllowStaffs);
+            Suite.Sync(SvimmaConfig.AllowBuildingTools);
+            Suite.Sync(SvimmaConfig.DeepSwingStaminaMultiplier);
+            Suite.Sync(SvimmaConfig.AllowBlocking);
+
+            // The one personal setting. Registering syncs the whole config bar keybinds, so
+            // Verbose would be put back by the host's value, and a host's logging is not
+            // something to impose on somebody else's log file.
+            Suite.Local(SvimmaConfig.Verbose);
 
             // If the mod reads a data file that decides what it does, hash it too. The gate
             // catches two ends on different builds; it cannot catch two ends running the
