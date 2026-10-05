@@ -1,0 +1,12 @@
+{
+    "listed": true,
+    "short": "Swimming stops putting your weapon away. Swords, pickaxes and fishing rods stay in hand in deep water, at a higher stamina price per swing.",
+    "roadmap": [
+        {
+            "key": "check-in-the-water",
+            "title": "Check swinging and hitting in deep water in game",
+            "status": "planned",
+            "body": "Two things only the running game can answer: whether the swing animation plays sensibly while you swim, and whether a blow reaches something in or under the surface.\n\nThe first play test settles both, and anything that looks wrong is fixed before the mod is released."
+        }
+    ]
+}
