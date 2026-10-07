@@ -1,8 +1,8 @@
 # Changelog
 
-## 0.1.0 - unreleased
+## 1.0.0 - 2026-10-08
 
-First version. Swimming with no ground under you no longer puts your hand items away, and you
+First release, a member of Longhouse 2.4.0. Swimming with no ground under you no longer puts your hand items away, and you
 can equip them there. Melee weapons, pickaxes and fishing rods are allowed, bows, crossbows,
 staffs and building tools are not, and each of those is a switch in the config.
 
@@ -17,7 +17,7 @@ stamina does not regenerate while you swim. Blocking is off in deep water unless
 is on. Wading, standing on the bottom with the water at your chest, is not deep water and is
 untouched.
 
-Built and compiled, not yet run in game. Whether the swing animation looks right while swimming
+Built and compiled, not yet run in game, alone or on a server. Whether the swing animation looks right while swimming
 and whether a blow reaches something in or under the water are only answerable there. A Devkit
 scenario (`scenarios/svimma-deep-water-keeps-the-weapon.txt`) checks the equip, the hand items
 staying out and the price, and lists the manual checks.

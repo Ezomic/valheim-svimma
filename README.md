@@ -82,7 +82,7 @@ being able to impose its rules.
 
 ## What has not been checked
 
-Built, not yet run in game. Two things only the running game can answer: whether the swing
+Built, not yet run in game, and never on a server with other players. Two things only the running game can answer: whether the swing
 animation plays sensibly while you are swimming, and whether a blow reaches something in or
 under the surface. The attack code puts no condition on either, but the animator has its own
 swim state and its transitions are not in the code. A Devkit scenario covers the equip, the
